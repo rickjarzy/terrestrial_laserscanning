@@ -98,6 +98,9 @@ if __name__ == "__main__":
     # create TLS Data
     tls_x, tls_y, tls_z = create_tls_data(sphere_x, sphere_y, sphere_z, sphere_radius, verbose=True, stativ=True)
 
+
+
+
     r_init = numpy.ones(len(tls_y))
     v_init = numpy.zeros(len(tls_y))
 
@@ -121,7 +124,7 @@ if __name__ == "__main__":
 
     w = (tls_x + v_init - x_d_init[0]) * (tls_x - x_d_init[0]) +\
         (tls_y + v_init - x_d_init[1]) * (tls_y - x_d_init[1]) +\
-        (tls_z + v_init - x_d_init[2]) * (tls_z - x_d_init[2])
+        (tls_z + v_init - x_d_init[2]) * (tls_z - x_d_init[2]) -
 
     print("A",type(A), A.shape)
     print("w", type(w), w.shape)
