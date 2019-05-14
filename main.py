@@ -18,8 +18,8 @@ def create_tls_data(m_x, m_y, m_z, radius, verbose=False, stativ=False):
     z_coords = []
 
     #sphere
-    for phi in range(1, 360, 12):
-        for theta in range(1, 360, 12):
+    for phi in range(1, 180, 12):
+        for theta in range(1, 180, 12):
             x = m_x + radius * numpy.sin(theta * (numpy.pi / 180)) * numpy.cos(phi * (numpy.pi / 180))
             y = m_y + radius * numpy.sin(theta * (numpy.pi / 180)) * numpy.sin(phi * (numpy.pi / 180))
             z = m_z + radius * numpy.cos(theta * (numpy.pi / 180))
@@ -43,7 +43,7 @@ def create_tls_data(m_x, m_y, m_z, radius, verbose=False, stativ=False):
         x_coords_zyl = []
         y_coords_zyl = []
         z_coords_zyl = []
-        for phi in range(1, 360, 12):
+        for phi in range(1, 180, 12):
             for h in range(m_z - height, m_z - radius, 1):
                 x = m_x + radius_zylinder * numpy.cos(phi * (numpy.pi / 180))
                 y = m_y + radius_zylinder * numpy.sin(phi * (numpy.pi / 180))
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     sphere_z = 99
 
     # create TLS Data
-    tls_x, tls_y, tls_z = create_tls_data(sphere_x, sphere_y, sphere_z, sphere_radius)
+    tls_x, tls_y, tls_z = create_tls_data(sphere_x, sphere_y, sphere_z, sphere_radius, verbose=True, stativ=True)
 
     r_init = numpy.ones(len(tls_y))
     v_init = numpy.zeros(len(tls_y))
@@ -116,8 +116,8 @@ if __name__ == "__main__":
 
     A = numpy.array([ -(tls_x + v_init - x_d_init[0])/r_init, -(tls_y + v_init - x_d_init[1])/r_init, -(tls_z + v_init - x_d_init[2])/r_init, r_init]).T
 
-    B = numpy.eye(len(tls_x)) * A
-    print(B)
+    #B = numpy.eye(len(tls_x)) * A
+    #print(B)
 
     w = (tls_x + v_init - x_d_init[0]) * (tls_x - x_d_init[0]) +\
         (tls_y + v_init - x_d_init[1]) * (tls_y - x_d_init[1]) +\

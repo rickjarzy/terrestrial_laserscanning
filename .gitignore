@@ -1,2 +1,5 @@
 .idea
-/.idead/**
+.idead/**
+.idead/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
