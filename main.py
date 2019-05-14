@@ -96,9 +96,11 @@ if __name__ == "__main__":
     sphere_z = 99
 
     # create TLS Data
-    tls_x, tls_y, tls_z = create_tls_data(sphere_x, sphere_y, sphere_z, sphere_radius, verbose=True, stativ=True)
+    tls_x, tls_y, tls_z = create_tls_data(sphere_x, sphere_y, sphere_z, sphere_radius)
 
+    sphere_data_1 = numpy.loadtxt(open(r"C:\Users\arzbergerp\Documents\private\UNI\TLS\ueb2\data\SP1_Scan002_sphere.txt"), delimiter=",")
 
+    print("sphere data\n", sphere_data_1)
 
 
     r_init = numpy.ones(len(tls_y))
@@ -124,7 +126,7 @@ if __name__ == "__main__":
 
     w = (tls_x + v_init - x_d_init[0]) * (tls_x - x_d_init[0]) +\
         (tls_y + v_init - x_d_init[1]) * (tls_y - x_d_init[1]) +\
-        (tls_z + v_init - x_d_init[2]) * (tls_z - x_d_init[2]) -
+        (tls_z + v_init - x_d_init[2]) * (tls_z - x_d_init[2])
 
     print("A",type(A), A.shape)
     print("w", type(w), w.shape)
