@@ -68,7 +68,7 @@ def create_tls_data(m_x, m_y, m_z, radius, verbose=False, stativ=False):
         if stativ:
             ax.scatter3D(x_arr_zyl, y_arr_zyl, z_arr_zyl, c=z_arr_zyl, cmap='viridis', linewidths=0.5,
                      label="Test Zylinder Points")
-        ax.set_title("3D Scatter Plot of the Test Sphere")
+        ax.set_title("3D Scatter Plot of the LTS Sphere")
         ax.set_xlabel("X Coorinates")
         ax.set_ylabel("Y Coorinates")
         ax.set_zlabel("Z Coorinates")
@@ -89,59 +89,51 @@ def create_tls_data(m_x, m_y, m_z, radius, verbose=False, stativ=False):
 
 if __name__ == "__main__":
 
-    # sphere definition
-    sphere_radius = 12
-    sphere_x = 12
-    sphere_y = 16
-    sphere_z = 99
+
 
     # create TLS Data
-    tls_x, tls_y, tls_z = create_tls_data(sphere_x, sphere_y, sphere_z, sphere_radius)
+    #tls_x, tls_y, tls_z = create_tls_data(sphere_x, sphere_y, sphere_z, sphere_radius)
 
-    sphere_data_1 = numpy.loadtxt(open(r"C:\Users\arzbergerp\Documents\private\UNI\TLS\ueb2\data\SP1_Scan002_sphere.txt"), delimiter=",")
+    sphere_data_1 = numpy.loadtxt(open(r"data\SP1_Scan002_sphere.txt"), delimiter=",")
 
-    print("sphere data\n", sphere_data_1)
-
-
-    r_init = numpy.ones(len(tls_y))
-    v_init = numpy.zeros(len(tls_y))
-
-    # näherungswerte
-    x_d_init = numpy.array([18,20,150,8])
-
-    r_init = numpy.sqrt((tls_x + v_init - x_d_init[0])**2 +
-                        (tls_y + v_init - x_d_init[1])**2 +
-                        (tls_y + v_init - x_d_init[2])**2 )
-
-
-    # Kovarianzmatrix der Beobachtungen
-    SIGMA_l = numpy.eye(len(tls_x), len(tls_x))
-
-    # Designmatrix A
-
-    A = numpy.array([ -(tls_x + v_init - x_d_init[0])/r_init, -(tls_y + v_init - x_d_init[1])/r_init, -(tls_z + v_init - x_d_init[2])/r_init, r_init]).T
-
-    #B = numpy.eye(len(tls_x)) * A
-    #print(B)
-
-    w = (tls_x + v_init - x_d_init[0]) * (tls_x - x_d_init[0]) +\
-        (tls_y + v_init - x_d_init[1]) * (tls_y - x_d_init[1]) +\
-        (tls_z + v_init - x_d_init[2]) * (tls_z - x_d_init[2])
-
-    print("A",type(A), A.shape)
-    print("w", type(w), w.shape)
-    print("SIG", type(SIGMA_l), SIGMA_l.shape)
-    # Normal gleichungsmatrix
-    N = -numpy.linalg.inv(numpy.dot(numpy.dot(A.T, SIGMA_l), A))
-    widerspruchteil = numpy.dot(numpy.dot(A.T,SIGMA_l),w)
-    x_d =  numpy.dot(N,widerspruchteil)
-
-    print(x_d)
-    print(SIGMA_l.shape)
-    print(A.shape)
+    sphere_x_data_1 = sphere_data_1[:, 0]
+    sphere_x_data_2 = sphere_data_1[:, 1]
+    sphere_x_data_3 = sphere_data_1[:, 2]
 
 
 
+
+    sphere_data_max_z = sphere_data_1[sphere_data_1[:,2]==numpy.nanmax(sphere_data_1[:, 2])]
+    print("sphere_data_mx_z: ", sphere_data_max_z)
+    r_init = 0.15
+    z_init_max = numpy.nanmax(sphere_data_1[:,2]) - r_init
+    x_init = sphere_data_max_z[0,0] - r_init
+    y_init = sphere_data_max_z[0,1] - r_init
+    z_init = z_init_max - r_init
+    v_init = numpy.zeros(4)
+
+    print("Max  z koord: ", z_init_max)
+    print("Mean x koord: ", x_init)
+    print("Mean y koord: ", y_init)
+    print("Z init", z_init)
+    print("v init", v_init)
+
+
+
+    w = (sphere_x_data_1)
+
+
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.scatter3D(sphere_x_data_1, sphere_x_data_2, sphere_x_data_3, c=sphere_x_data_3, linewidths=0.5, label="LTS Sphere Points")
+    ax.scatter3D([sphere_data_max_z[0,0]], [sphere_data_max_z[0,1]], [z_init_max], c=[z_init_max], linewidths=0.5, label="initial Center Point")
+    ax.set_title("3D Scatter Plot of the LTS Sphere")
+    ax.set_xlabel("X Coorinates")
+    ax.set_ylabel("Y Coorinates")
+    ax.set_zlabel("Z Coorinates")
+    ax.legend()
+
+    plt.show()
 
 
 
