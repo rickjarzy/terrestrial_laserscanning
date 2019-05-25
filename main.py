@@ -1,10 +1,11 @@
-import scipy
+
 import numpy
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
-
+from scipy import sparse
+from numpy import dot
 
 def create_tls_data(m_x, m_y, m_z, radius, verbose=False, stativ=False):
     # zylinder as stativ aproximation
@@ -96,37 +97,83 @@ if __name__ == "__main__":
 
     sphere_data_1 = numpy.loadtxt(open(r"data\SP1_Scan002_sphere.txt"), delimiter=",")
 
+    # subset of sphere_data_1 to check if things work ouz
+    #sphere_data_1 = sphere_data_1[:150,:]
+    sphere_data_1_indizes = list(numpy.arange(0,sphere_data_1.shape[0],1))
+
+    sphere_data_1_indizes_select = numpy.random.choice(sphere_data_1_indizes, 10)
+
+    #todo: select by index optimieren
+    # https://scipy-cookbook.readthedocs.io/items/Indexing.html
+
+    sphere_data_1 = sphere_data_1[sphere_data_1_indizes]
+
+    print(sphere_data_1_indizes_select)
+    print(sphere_data_1.shape)
     sphere_x_data_1 = sphere_data_1[:, 0]
     sphere_x_data_2 = sphere_data_1[:, 1]
     sphere_x_data_3 = sphere_data_1[:, 2]
 
 
-
-
     sphere_data_max_z = sphere_data_1[sphere_data_1[:,2]==numpy.nanmax(sphere_data_1[:, 2])]
     print("sphere_data_mx_z: ", sphere_data_max_z)
-    r_init = 0.15
-    z_init_max = numpy.nanmax(sphere_data_1[:,2]) - r_init
-    x_init = sphere_data_max_z[0,0] - r_init
-    y_init = sphere_data_max_z[0,1] - r_init
-    z_init = z_init_max - r_init
-    v_init = numpy.zeros(4)
+    r_c = 0.15
+    z_init_max = numpy.nanmax(sphere_data_1[:,2]) - r_c
+    x_c = sphere_data_max_z[0,0] - r_c
+    y_c = sphere_data_max_z[0,1] - r_c
+    z_c = z_init_max
+    v = numpy.zeros(4)
 
-    print("Max  z koord: ", z_init_max)
-    print("Mean x koord: ", x_init)
-    print("Mean y koord: ", y_init)
-    print("Z init", z_init)
-    print("v init", v_init)
+    print("Data diminesion: ", sphere_data_1.shape)
+    print("Max  z koord: ", z_c)
+    print("x koord init: ", x_c)
+    print("y koord init: ", y_c)
+    print("z koord init", z_c)
+    print("v init", v)
+
+    # zur leichteren formel erstellung noch mal alles auf neue variablen
+    x_1 = sphere_x_data_1
+    y_1 = sphere_x_data_2
+    z_1 = sphere_x_data_3
 
 
+    v_x_1 = v[0]
+    v_y_1 = v[1]
+    v_z_1 = v[2]
+    v_r_1 = v[3]
 
-    w = (sphere_x_data_1)
+    r_1 = numpy.sqrt((x_1+v_x_1-x_c)**2 + (y_1 + v_y_1 - y_c)**2 + (z_1 + v_z_1 - z_c)**2)
 
+    # Kovarianzmatrix der Beobachtungen
+    SIGMA = numpy.eye((sphere_data_1.shape[0]))
+
+    # widerspruchsvektor
+    w = (x_1 + v_x_1 - x_c)*(x_1 - x_c) + (y_1 + v_y_1 - y_c)*(y_1 - y_c) + (z_1 + v_z_1 - z_c)*(z_1 - z_c) - r_c*r_1
+
+    # Designmatrix A
+    A = -numpy.ones((sphere_data_1.shape[0],4))
+    A[:, 0] = -(x_1 + v_x_1 - x_c) / r_1
+    A[:, 1] = -(y_1 + v_y_1 - y_c ) / r_1
+    A[:, 2] = -(z_1 + v_z_1 - z_c ) / r_1
+
+    B = sparse.coo_matrix((A[:,0], (A[:,1], A[:,2])), shape=A.shape)
+    print("Start calculation of the Normalequation matrix ...")
+    N = numpy.linalg.inv((dot(A.T,numpy.linalg.inv(dot(dot(B,SIGMA), B.T))), A))
+
+    x_dach = - dot(dot(N, dot(A.T,numpy.linalg.inv(dot(dot(B, SIGMA), B.T)))),w)
+
+    print("Dim Check")
+    print("A: ", A.shape)
+    print("w: ", w.shape)
+    print("r_1: ", r_1.shape)
+    print("B: ", B.shape)
+    print(B[:,1])
+    print("N: ", N.shape)
 
     fig = plt.figure()
     ax = fig.gca(projection='3d')
     ax.scatter3D(sphere_x_data_1, sphere_x_data_2, sphere_x_data_3, c=sphere_x_data_3, linewidths=0.5, label="LTS Sphere Points")
-    ax.scatter3D([sphere_data_max_z[0,0]], [sphere_data_max_z[0,1]], [z_init_max], c=[z_init_max], linewidths=0.5, label="initial Center Point")
+    ax.scatter3D([sphere_data_max_z[0,0]], [sphere_data_max_z[0,1]], [z_init_max],  color='red', linewidths=0.5, label="initial Center Point")
     ax.set_title("3D Scatter Plot of the LTS Sphere")
     ax.set_xlabel("X Coorinates")
     ax.set_ylabel("Y Coorinates")
