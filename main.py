@@ -101,24 +101,25 @@ if __name__ == "__main__":
     #sphere_data_1 = sphere_data_1[:150,:]
     sphere_data_1_indizes = list(numpy.arange(0,sphere_data_1.shape[0],1))
 
-    sphere_data_1_indizes_select = numpy.random.choice(sphere_data_1_indizes, 10)
+    sphere_data_1_indizes_rand_select = numpy.random.choice(sphere_data_1_indizes, 10)
 
+    print(sphere_data_1_indizes_rand_select)
     #todo: select by index optimieren
     # https://scipy-cookbook.readthedocs.io/items/Indexing.html
 
-    sphere_data_1 = sphere_data_1[sphere_data_1_indizes]
-
-    print(sphere_data_1_indizes_select)
-    print(sphere_data_1.shape)
-    sphere_x_data_1 = sphere_data_1[:, 0]
-    sphere_x_data_2 = sphere_data_1[:, 1]
-    sphere_x_data_3 = sphere_data_1[:, 2]
+    sphere_data_1_subset = sphere_data_1[sphere_data_1_indizes_rand_select]
+    print("type sphere_data ", type(sphere_data_1_subset))
+    print(sphere_data_1_indizes_rand_select)
+    print(sphere_data_1_subset.shape)
+    sphere_x_data_1 = sphere_data_1_subset[:, 0]
+    sphere_x_data_2 = sphere_data_1_subset[:, 1]
+    sphere_x_data_3 = sphere_data_1_subset[:, 2]
 
 
     sphere_data_max_z = sphere_data_1[sphere_data_1[:,2]==numpy.nanmax(sphere_data_1[:, 2])]
     print("sphere_data_mx_z: ", sphere_data_max_z)
     r_c = 0.15
-    z_init_max = numpy.nanmax(sphere_data_1[:,2]) - r_c
+    z_init_max = sphere_data_max_z[0,2] - r_c
     x_c = sphere_data_max_z[0,0] - r_c
     y_c = sphere_data_max_z[0,1] - r_c
     z_c = z_init_max
@@ -136,31 +137,49 @@ if __name__ == "__main__":
     y_1 = sphere_x_data_2
     z_1 = sphere_x_data_3
 
-
     v_x_1 = v[0]
     v_y_1 = v[1]
     v_z_1 = v[2]
     v_r_1 = v[3]
 
-    r_1 = numpy.sqrt((x_1+v_x_1-x_c)**2 + (y_1 + v_y_1 - y_c)**2 + (z_1 + v_z_1 - z_c)**2)
 
+
+    r_1 = numpy.sqrt((x_1+v_x_1-x_c)**2 + (y_1 + v_y_1 - y_c)**2 + (z_1 + v_z_1 - z_c)**2)
+    print(x_1.shape, " ", v_x_1.shape, " ", r_1.shape)
     # Kovarianzmatrix der Beobachtungen
-    SIGMA = numpy.eye((sphere_data_1.shape[0]))
+    SIGMA = numpy.eye((sphere_data_1_subset.shape[0]))
 
     # widerspruchsvektor
     w = (x_1 + v_x_1 - x_c)*(x_1 - x_c) + (y_1 + v_y_1 - y_c)*(y_1 - y_c) + (z_1 + v_z_1 - z_c)*(z_1 - z_c) - r_c*r_1
 
     # Designmatrix A
-    A = -numpy.ones((sphere_data_1.shape[0],4))
+    A = -numpy.ones((sphere_data_1_subset.shape[0],4))
+
     A[:, 0] = -(x_1 + v_x_1 - x_c) / r_1
     A[:, 1] = -(y_1 + v_y_1 - y_c ) / r_1
     A[:, 2] = -(z_1 + v_z_1 - z_c ) / r_1
 
-    B = sparse.coo_matrix((A[:,0], (A[:,1], A[:,2])), shape=A.shape)
-    print("Start calculation of the Normalequation matrix ...")
-    N = numpy.linalg.inv((dot(A.T,numpy.linalg.inv(dot(dot(B,SIGMA), B.T))), A))
+    sparse_part_1 = numpy.eye(A.shape[0]) * A[:, 0]
+    sparse_part_2 = numpy.eye(A.shape[0]) * A[:, 1]
+    sparse_part_3 = numpy.eye(A.shape[0]) * A[:, 2]
 
-    x_dach = - dot(dot(N, dot(A.T,numpy.linalg.inv(dot(dot(B, SIGMA), B.T)))),w)
+    #numpy.savetxt("sparese_1.txt", sparse_part_1, delimiter=" ")
+    #numpy.savetxt("sparese_2.txt", sparse_part_2, delimiter=" ")
+    #numpy.savetxt("sparese_3.txt", sparse_part_3, delimiter=" ")
+    print(sparse_part_1)
+    B = numpy.zeros((sparse_part_1.shape[0], sparse_part_1.shape[1]*3))
+    B[:,0:sparse_part_1.shape[1]]=sparse_part_1
+    B[:,sparse_part_1.shape[1]:sparse_part_1.shape[1]*2] = sparse_part_2
+    B[:, sparse_part_1.shape[1]*2:sparse_part_1.shape[1] * 3] = sparse_part_3
+    #numpy.savetxt("B_sparese.txt", B, delimiter=" ")
+
+    print("B\n", B.shape, "\n", B[:,0:10])
+
+
+    print("Start calculation of the Normalequation matrix ...")
+    N = numpy.linalg.inv((dot(A.T, numpy.linalg.inv(dot(dot(B, SIGMA), B.T))), A))
+
+    x_dach = - dot(dot(N, dot(A.T, numpy.linalg.inv(dot(dot(B, SIGMA), B.T)))), w)
 
     print("Dim Check")
     print("A: ", A.shape)
