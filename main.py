@@ -4,7 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
-from scipy import sparse
+
 from numpy import dot
 
 def create_tls_data(m_x, m_y, m_z, radius, verbose=False, stativ=False):
@@ -142,8 +142,6 @@ if __name__ == "__main__":
     v_z_1 = v[2]
     v_r_1 = v[3]
 
-
-
     r_1 = numpy.sqrt((x_1+v_x_1-x_c)**2 + (y_1 + v_y_1 - y_c)**2 + (z_1 + v_z_1 - z_c)**2)
     print(x_1.shape, " ", v_x_1.shape, " ", r_1.shape)
     # Kovarianzmatrix der Beobachtungen
@@ -166,20 +164,18 @@ if __name__ == "__main__":
     #numpy.savetxt("sparese_1.txt", sparse_part_1, delimiter=" ")
     #numpy.savetxt("sparese_2.txt", sparse_part_2, delimiter=" ")
     #numpy.savetxt("sparese_3.txt", sparse_part_3, delimiter=" ")
-    print(sparse_part_1)
+
     B = numpy.zeros((sparse_part_1.shape[0], sparse_part_1.shape[1]*3))
     B[:,0:sparse_part_1.shape[1]]=sparse_part_1
     B[:,sparse_part_1.shape[1]:sparse_part_1.shape[1]*2] = sparse_part_2
     B[:, sparse_part_1.shape[1]*2:sparse_part_1.shape[1] * 3] = sparse_part_3
     #numpy.savetxt("B_sparese.txt", B, delimiter=" ")
 
-    print("B\n", B.shape, "\n", B[:,0:10])
-
     # todo: Sparese Matrix Multiplication throws error
     print("Start calculation of the Normalequation matrix ...")
-    N = numpy.linalg.inv((dot(A.T, numpy.linalg.inv(dot(dot(B, SIGMA), B.T))), A))
-
-    x_dach = - dot(dot(N, dot(A.T, numpy.linalg.inv(dot(dot(B, SIGMA), B.T)))), w)
+    N = dot(B.T, SIGMA)
+  #  N = numpy.linalg.inv((dot(A.T, numpy.linalg.inv(dot(dot(B, SIGMA), B.T))), A))
+  #  x_dach = - dot(dot(N, dot(A.T, numpy.linalg.inv(dot(dot(B, SIGMA), B.T)))), w)
 
     print("Dim Check")
     print("A: ", A.shape)
