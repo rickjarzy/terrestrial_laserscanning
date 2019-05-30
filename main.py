@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
     print("B\n", B.shape, "\n", B[:,0:10])
 
-
+    # todo: Sparese Matrix Multiplication throws error
     print("Start calculation of the Normalequation matrix ...")
     N = numpy.linalg.inv((dot(A.T, numpy.linalg.inv(dot(dot(B, SIGMA), B.T))), A))
 
