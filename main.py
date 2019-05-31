@@ -7,12 +7,33 @@ from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
 from numpy import dot
 
+
+def calc_sphere(m_x, m_y, m_z, radius, verbose=False):
+
+
+    phi = numpy.linspace(0, 2*numpy.pi, 100)
+    theta = numpy.linspace(0, numpy.pi, 100)
+
+    x = m_x + radius * numpy.outer(numpy.cos(phi), numpy.sin(theta))
+    y = m_y + radius * numpy.outer(numpy.sin(phi), numpy.sin(theta))
+    z = m_z + radius * numpy.outer(numpy.ones(numpy.size(phi)), numpy.cos(theta))
+
+    if verbose:
+        print(" len of x ", len(x))
+        # 3d Scattrer plot - FULL resolution
+        fig = plt.figure()
+        ax = fig.gca(projection='3d')
+        ax.plot_surface(x, y, z, color='cyan', label="Test Sphere Points")
+
+        plt.show()
+
+    return x, y, z
+
+
 def create_tls_data(m_x, m_y, m_z, radius, verbose=False, stativ=False):
     # zylinder as stativ aproximation
     radius_zylinder = radius / 3
     height = radius * 3
-
-
 
     x_coords = []
     y_coords = []
@@ -58,8 +79,6 @@ def create_tls_data(m_x, m_y, m_z, radius, verbose=False, stativ=False):
                 y_arr_zyl = numpy.asarray(y_coords_zyl) + numpy.random.rand(len(x_coords_zyl)) * 1.5
                 z_arr_zyl = numpy.asarray(z_coords_zyl) + numpy.random.rand(len(x_coords_zyl)) * 1.5
 
-
-
     if verbose:
         print(" len of x ", len(x_coords))
         # 3d Scattrer plot - FULL resolution
@@ -88,42 +107,44 @@ def create_tls_data(m_x, m_y, m_z, radius, verbose=False, stativ=False):
 
     return x_data, y_data, z_data
 
+
 if __name__ == "__main__":
-
-
 
     # create TLS Data
     #tls_x, tls_y, tls_z = create_tls_data(sphere_x, sphere_y, sphere_z, sphere_radius)
 
+    # load TLS data
     sphere_data_1 = numpy.loadtxt(open(r"data\SP1_Scan002_sphere.txt"), delimiter=",")
 
-    # subset of sphere_data_1 to check if things work ouz
-    #sphere_data_1 = sphere_data_1[:150,:]
+    # subset of sphere_data_1 to check if things work out
     sphere_data_1_indizes = list(numpy.arange(0,sphere_data_1.shape[0],1))
 
     sphere_data_1_indizes_rand_select = numpy.random.choice(sphere_data_1_indizes, 10)
 
     print(sphere_data_1_indizes_rand_select)
-    #todo: select by index optimieren
-    # https://scipy-cookbook.readthedocs.io/items/Indexing.html
 
+    # https://scipy-cookbook.readthedocs.io/items/Indexing.html
     sphere_data_1_subset = sphere_data_1[sphere_data_1_indizes_rand_select]
-    print("type sphere_data ", type(sphere_data_1_subset))
-    print(sphere_data_1_indizes_rand_select)
-    print(sphere_data_1_subset.shape)
     sphere_x_data_1 = sphere_data_1_subset[:, 0]
     sphere_x_data_2 = sphere_data_1_subset[:, 1]
     sphere_x_data_3 = sphere_data_1_subset[:, 2]
 
-
+    # select start values for sphere center - take the measuremnet where the zvalue is max
     sphere_data_max_z = sphere_data_1[sphere_data_1[:,2]==numpy.nanmax(sphere_data_1[:, 2])]
-    print("sphere_data_mx_z: ", sphere_data_max_z)
+
+    # INITIAL VALUES
+    # ===================================
+
+    # estimate sphere radius
     r_c = 0.15
+    # estimate sphere center coordinates
     z_init_max = sphere_data_max_z[0,2] - r_c
+    z_c = z_init_max
     x_c = sphere_data_max_z[0,0] - r_c
     y_c = sphere_data_max_z[0,1] - r_c
-    z_c = z_init_max
-    v = numpy.zeros(sphere_data_1_subset.shape[0])
+
+    # initial values for the verbesserungen
+    v = numpy.zeros(sphere_data_1_subset.shape[0]*3)
 
     print("Data diminesion: ", sphere_data_1.shape)
     print("Max  z koord: ", z_c)
@@ -133,24 +154,30 @@ if __name__ == "__main__":
     print("r init: ", r_c)
     print("v init", v)
 
+    # estimates for sphere koefficients
     x_0 = numpy.array([x_c, y_c, z_c, r_c])
 
-    # zur leichteren formel erstellung noch mal alles auf neue variablen
+    # write x,y,z measuerements onto easier readable variables
     x_1 = sphere_x_data_1
     y_1 = sphere_x_data_2
     z_1 = sphere_x_data_3
 
-    v_x_1 = v[0]
-    v_y_1 = v[1]
-    v_z_1 = v[2]
-    v_r_1 = v[3]
+    #split verbesserungen onto the coordinate coefficients
+    v_x_1 = v[0 : sphere_x_data_1.shape[0]]
+    v_y_1 = v[sphere_x_data_1.shape[0] : sphere_x_data_1.shape[0]*2]
+    v_z_1 = v[sphere_x_data_1.shape[0]*2 : sphere_x_data_1.shape[0]*3]
 
+    print("v_x_1\n", v_x_1)
+    print("v_y_1\n", v_y_1)
+    print("v_z_1\n", v_z_1)
+
+    # help value for the radius
     r_1 = numpy.sqrt((x_1+v_x_1-x_c)**2 + (y_1 + v_y_1 - y_c)**2 + (z_1 + v_z_1 - z_c)**2)
-    print(x_1.shape, " ", v_x_1.shape, " ", r_1.shape)
+
     # Kovarianzmatrix der Beobachtungen
     SIGMA = numpy.eye((sphere_data_1_subset.shape[0]*3))
 
-    # widerspruchsvektor
+    # Widerspruchsvektor
     w = (x_1 + v_x_1 - x_c)*(x_1 - x_c) + (y_1 + v_y_1 - y_c)*(y_1 - y_c) + (z_1 + v_z_1 - z_c)*(z_1 - z_c) - r_c*r_1
 
     # Designmatrix A
@@ -160,21 +187,19 @@ if __name__ == "__main__":
     A[:, 1] = -(y_1 + v_y_1 - y_c ) / r_1
     A[:, 2] = -(z_1 + v_z_1 - z_c ) / r_1
 
+    # B is a sparse matrix - with the elements of A for each partial differential
     sparse_part_1 = numpy.eye(A.shape[0]) * A[:, 0] * -1
     sparse_part_2 = numpy.eye(A.shape[0]) * A[:, 1] * -1
     sparse_part_3 = numpy.eye(A.shape[0]) * A[:, 2] * -1
 
-    #numpy.savetxt("sparese_1.txt", sparse_part_1, delimiter=" ")
-    #numpy.savetxt("sparese_2.txt", sparse_part_2, delimiter=" ")
-    #numpy.savetxt("sparese_3.txt", sparse_part_3, delimiter=" ")
-
+    # Bedingungsmatrix
     B = numpy.zeros((sparse_part_1.shape[0], sparse_part_1.shape[1]*3))
     B[:,0:sparse_part_1.shape[1]]=sparse_part_1
     B[:,sparse_part_1.shape[1]:sparse_part_1.shape[1]*2] = sparse_part_2
     B[:, sparse_part_1.shape[1]*2:sparse_part_1.shape[1] * 3] = sparse_part_3
     #numpy.savetxt("B_sparese.txt", B, delimiter=" ")
 
-    # todo: Sparese Matrix Multiplication throws error
+
     print("Start calculation of the Normalequation matrix ...")
 
     # Normalgleichungsmatrix
@@ -193,6 +218,7 @@ if __name__ == "__main__":
     sigma_0 = numpy.sqrt(dot(dot(v.T,SIGMA), v)/(sphere_data_1_subset.shape[0]-sphere_data_1_subset.shape[1]))
 
     # kovarianzmatrix
+    SIGMA_xx = N * sigma_0**2
 
     print("x: ", x_0 + x_d)
     print("Dim Check")
@@ -211,16 +237,24 @@ if __name__ == "__main__":
     print(v)
     print("sigma_0: ", sigma_0.shape)
     print(sigma_0)
+    print("SIGMA_xx: ", SIGMA_xx.shape)
+    print(SIGMA_xx)
 
+    x_dach = x_0 + x_d
+
+    x_arr_sphere, y_arr_sphere, z_arr_sphere = calc_sphere(x_dach[0], x_dach[1], x_dach[2], x_dach[3], True)
+    print("zsphere")
+    print(z_arr_sphere)
     fig = plt.figure()
     ax = fig.gca(projection='3d')
+    ax.plot_surface(x_arr_sphere, y_arr_sphere, z_arr_sphere, color='cyan', label="Estimated Sphere")
     ax.scatter3D(sphere_x_data_1, sphere_x_data_2, sphere_x_data_3, c=sphere_x_data_3, linewidths=0.5, label="LTS Sphere Points")
     ax.scatter3D([sphere_data_max_z[0,0]], [sphere_data_max_z[0,1]], [z_init_max],  color='red', linewidths=0.5, label="initial Center Point")
     ax.set_title("3D Scatter Plot of the LTS Sphere")
     ax.set_xlabel("X Coorinates")
     ax.set_ylabel("Y Coorinates")
     ax.set_zlabel("Z Coorinates")
-    ax.legend()
+
 
     plt.show()
     print("Programm ENDE")
