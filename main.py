@@ -123,14 +123,17 @@ if __name__ == "__main__":
     x_c = sphere_data_max_z[0,0] - r_c
     y_c = sphere_data_max_z[0,1] - r_c
     z_c = z_init_max
-    v = numpy.zeros(4)
+    v = numpy.zeros(sphere_data_1_subset.shape[0])
 
     print("Data diminesion: ", sphere_data_1.shape)
     print("Max  z koord: ", z_c)
     print("x koord init: ", x_c)
     print("y koord init: ", y_c)
     print("z koord init", z_c)
+    print("r init: ", r_c)
     print("v init", v)
+
+    x_0 = numpy.array([x_c, y_c, z_c, r_c])
 
     # zur leichteren formel erstellung noch mal alles auf neue variablen
     x_1 = sphere_x_data_1
@@ -145,7 +148,7 @@ if __name__ == "__main__":
     r_1 = numpy.sqrt((x_1+v_x_1-x_c)**2 + (y_1 + v_y_1 - y_c)**2 + (z_1 + v_z_1 - z_c)**2)
     print(x_1.shape, " ", v_x_1.shape, " ", r_1.shape)
     # Kovarianzmatrix der Beobachtungen
-    SIGMA = numpy.eye((sphere_data_1_subset.shape[0]))
+    SIGMA = numpy.eye((sphere_data_1_subset.shape[0]*3))
 
     # widerspruchsvektor
     w = (x_1 + v_x_1 - x_c)*(x_1 - x_c) + (y_1 + v_y_1 - y_c)*(y_1 - y_c) + (z_1 + v_z_1 - z_c)*(z_1 - z_c) - r_c*r_1
@@ -157,9 +160,9 @@ if __name__ == "__main__":
     A[:, 1] = -(y_1 + v_y_1 - y_c ) / r_1
     A[:, 2] = -(z_1 + v_z_1 - z_c ) / r_1
 
-    sparse_part_1 = numpy.eye(A.shape[0]) * A[:, 0]
-    sparse_part_2 = numpy.eye(A.shape[0]) * A[:, 1]
-    sparse_part_3 = numpy.eye(A.shape[0]) * A[:, 2]
+    sparse_part_1 = numpy.eye(A.shape[0]) * A[:, 0] * -1
+    sparse_part_2 = numpy.eye(A.shape[0]) * A[:, 1] * -1
+    sparse_part_3 = numpy.eye(A.shape[0]) * A[:, 2] * -1
 
     #numpy.savetxt("sparese_1.txt", sparse_part_1, delimiter=" ")
     #numpy.savetxt("sparese_2.txt", sparse_part_2, delimiter=" ")
@@ -173,10 +176,25 @@ if __name__ == "__main__":
 
     # todo: Sparese Matrix Multiplication throws error
     print("Start calculation of the Normalequation matrix ...")
-    N = dot(B.T, SIGMA)
-  #  N = numpy.linalg.inv((dot(A.T, numpy.linalg.inv(dot(dot(B, SIGMA), B.T))), A))
-  #  x_dach = - dot(dot(N, dot(A.T, numpy.linalg.inv(dot(dot(B, SIGMA), B.T)))), w)
 
+    # Normalgleichungsmatrix
+    N = dot(dot(A.T,numpy.linalg.inv(dot(dot(B, SIGMA), B.T))),A)
+
+    # Zuschläge
+    x_d = -dot(numpy.linalg.inv(N),dot(dot(A.T,numpy.linalg.inv(dot(dot(B, SIGMA), B.T))),w))
+
+    #Korrelat
+    k = -dot(numpy.linalg.inv(dot(dot(B, SIGMA), B.T)),dot(A, x_d)+w)
+
+    #Verbesserungen
+    v = dot(dot(SIGMA, B.T), k)
+
+    # kovarianz
+    sigma_0 = numpy.sqrt(dot(dot(v.T,SIGMA), v)/(sphere_data_1_subset.shape[0]-sphere_data_1_subset.shape[1]))
+
+    # kovarianzmatrix
+
+    print("x: ", x_0 + x_d)
     print("Dim Check")
     print("A: ", A.shape)
     print("w: ", w.shape)
@@ -184,6 +202,15 @@ if __name__ == "__main__":
     print("B: ", B.shape)
     print(B[:,1])
     print("N: ", N.shape)
+    print(N)
+    print("x_d: ", x_d.shape)
+    print(x_d)
+    print("k: ", k.shape)
+    print(k)
+    print("v: ", v.shape)
+    print(v)
+    print("sigma_0: ", sigma_0.shape)
+    print(sigma_0)
 
     fig = plt.figure()
     ax = fig.gca(projection='3d')
@@ -196,8 +223,4 @@ if __name__ == "__main__":
     ax.legend()
 
     plt.show()
-
-
-
-
     print("Programm ENDE")
