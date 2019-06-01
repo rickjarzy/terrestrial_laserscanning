@@ -220,7 +220,14 @@ if __name__ == "__main__":
     # kovarianzmatrix
     SIGMA_xx = N * sigma_0**2
 
-    print("x: ", x_0 + x_d)
+    # verbesserten Parameter
+    x_dach = x_0 + x_d
+
+    print("x_0: ", x_0.shape)
+    print(x_0)
+    print("x_d: ", x_d.shape)
+    print(x_d)
+    print("x_dach: ", x_0 + x_d)
     print("Dim Check")
     print("A: ", A.shape)
     print("w: ", w.shape)
@@ -229,8 +236,6 @@ if __name__ == "__main__":
     print(B[:,1])
     print("N: ", N.shape)
     print(N)
-    print("x_d: ", x_d.shape)
-    print(x_d)
     print("k: ", k.shape)
     print(k)
     print("v: ", v.shape)
@@ -240,14 +245,27 @@ if __name__ == "__main__":
     print("SIGMA_xx: ", SIGMA_xx.shape)
     print(SIGMA_xx)
 
-    x_dach = x_0 + x_d
 
-    x_arr_sphere, y_arr_sphere, z_arr_sphere = calc_sphere(x_dach[0], x_dach[1], x_dach[2], x_dach[3], True)
-    print("zsphere")
-    print(z_arr_sphere)
+
+    x_arr_sphere, y_arr_sphere, z_arr_sphere = calc_sphere(x_dach[0], x_dach[1], x_dach[2], x_dach[3])
+
+
+    # check if min
+    # Minimumsforderung - erweitert um die Nebendedingung
+    fl_check = dot(dot(v.T, numpy.linalg.inv(SIGMA)), v) - 2 * dot(k.T,(dot(A,x_d) + dot(B,v) + w))
+
+    # hauptprobe - soll durchgeführt werden wenn die Minimumsforderung unter einem gewissen schwellwert gefallen ist
+    f_l = numpy.sqrt((x_1 + v[0 : sphere_x_data_1.shape[0]] - x_dach[0])**2
+                     + (y_1 + v[sphere_x_data_1.shape[0] : sphere_x_data_1.shape[0]*2] - x_dach[1])**2
+                     + (z_1 + v[sphere_x_data_1.shape[0]*2 : sphere_x_data_1.shape[0]*3] - x_dach[2])**2
+                     ) - x_dach[3]
+
+    print("hauptbedingung: ", f_l)
+    print("check bedingung: ", fl_check)
+    print(f_l - fl_check)
     fig = plt.figure()
     ax = fig.gca(projection='3d')
-    ax.plot_surface(x_arr_sphere, y_arr_sphere, z_arr_sphere, color='cyan', label="Estimated Sphere")
+    ax.plot_surface(x_arr_sphere, y_arr_sphere, z_arr_sphere, color='cyan', label="Estimated Sphere", )
     ax.scatter3D(sphere_x_data_1, sphere_x_data_2, sphere_x_data_3, c=sphere_x_data_3, linewidths=0.5, label="LTS Sphere Points")
     ax.scatter3D([sphere_data_max_z[0,0]], [sphere_data_max_z[0,1]], [z_init_max],  color='red', linewidths=0.5, label="initial Center Point")
     ax.set_title("3D Scatter Plot of the LTS Sphere")
