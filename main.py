@@ -8,6 +8,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from numpy import dot
 
 
+# todo: RANSAC implementieren
+# todo: function für Gauss-Helmert
+
 def calc_sphere(m_x, m_y, m_z, radius, verbose=False):
 
 
