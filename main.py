@@ -125,9 +125,7 @@ if __name__ == "__main__":
 
     # https://scipy-cookbook.readthedocs.io/items/Indexing.html
     sphere_data_1_subset = sphere_data_1[sphere_data_1_indizes_rand_select]
-    sphere_x_data_1 = sphere_data_1_subset[:, 0]
-    sphere_x_data_2 = sphere_data_1_subset[:, 1]
-    sphere_x_data_3 = sphere_data_1_subset[:, 2]
+
 
     # select start values for sphere center - take the measuremnet where the zvalue is max
     sphere_data_max_z = sphere_data_1[sphere_data_1[:,2]==numpy.nanmax(sphere_data_1[:, 2])]
@@ -143,8 +141,15 @@ if __name__ == "__main__":
     x_c = sphere_data_max_z[0,0] - r_c
     y_c = sphere_data_max_z[0,1] - r_c
 
+    # estimates for sphere koefficients
+    x_0 = numpy.array([x_c, y_c, z_c, r_c])
+
     # initial values for the verbesserungen
     v = numpy.zeros(sphere_data_1_subset.shape[0]*3)
+
+    # Konvergenzgrenze
+    EPSILON = 1e-12
+
 
     print("Data diminesion: ", sphere_data_1.shape)
     print("Max  z koord: ", z_c)
@@ -154,124 +159,133 @@ if __name__ == "__main__":
     print("r init: ", r_c)
     print("v init", v)
 
-    # estimates for sphere koefficients
-    x_0 = numpy.array([x_c, y_c, z_c, r_c])
+    print("Start sphere parameter estimation")
 
-    # write x,y,z measuerements onto easier readable variables
-    x_1 = sphere_x_data_1
-    y_1 = sphere_x_data_2
-    z_1 = sphere_x_data_3
+    fl_check = 1
+    while EPSILON < fl_check:
 
-    #split verbesserungen onto the coordinate coefficients
-    v_x_1 = v[0 : sphere_x_data_1.shape[0]]
-    v_y_1 = v[sphere_x_data_1.shape[0] : sphere_x_data_1.shape[0]*2]
-    v_z_1 = v[sphere_x_data_1.shape[0]*2 : sphere_x_data_1.shape[0]*3]
+        # write x,y,z measuerements onto easier readable variables
+        x_1 = sphere_data_1_subset[:, 0]
+        y_1 = sphere_data_1_subset[:, 1]
+        z_1 = sphere_data_1_subset[:, 2]
 
-    print("v_x_1\n", v_x_1)
-    print("v_y_1\n", v_y_1)
-    print("v_z_1\n", v_z_1)
+        #split verbesserungen onto the coordinate coefficients
+        v_x_1 = v[0: x_1.shape[0]]
+        v_y_1 = v[x_1.shape[0]: x_1.shape[0] * 2]
+        v_z_1 = v[x_1.shape[0] * 2: x_1.shape[0] * 3]
 
-    # help value for the radius
-    r_1 = numpy.sqrt((x_1+v_x_1-x_c)**2 + (y_1 + v_y_1 - y_c)**2 + (z_1 + v_z_1 - z_c)**2)
+        print("v_x_1\n", v_x_1)
+        print("v_y_1\n", v_y_1)
+        print("v_z_1\n", v_z_1)
 
-    # Kovarianzmatrix der Beobachtungen
-    SIGMA = numpy.eye((sphere_data_1_subset.shape[0]*3))
+        # help value for the radius
+        r_1 = numpy.sqrt((x_1+v_x_1- x_0[0])**2 + (y_1 + v_y_1 - x_0[1])**2 + (z_1 + v_z_1 - x_0[2])**2)
 
-    # Widerspruchsvektor
-    w = (x_1 + v_x_1 - x_c)*(x_1 - x_c) + (y_1 + v_y_1 - y_c)*(y_1 - y_c) + (z_1 + v_z_1 - z_c)*(z_1 - z_c) - r_c*r_1
+        # Kovarianzmatrix der Beobachtungen
+        SIGMA = numpy.eye((sphere_data_1_subset.shape[0]*3))
 
-    # Designmatrix A
-    A = -numpy.ones((sphere_data_1_subset.shape[0],4))
+        # Widerspruchsvektor
+        w = (x_1 + v_x_1 - x_0[0])*(x_1 - x_0[0]) + (y_1 + v_y_1 - x_0[1])*(y_1 - x_0[1]) + (z_1 + v_z_1 - x_0[2])*(z_1 - x_0[2]) - r_c*r_1
 
-    A[:, 0] = -(x_1 + v_x_1 - x_c) / r_1
-    A[:, 1] = -(y_1 + v_y_1 - y_c ) / r_1
-    A[:, 2] = -(z_1 + v_z_1 - z_c ) / r_1
+        # Designmatrix A
+        A = -numpy.ones((sphere_data_1_subset.shape[0],4))
 
-    # B is a sparse matrix - with the elements of A for each partial differential
-    sparse_part_1 = numpy.eye(A.shape[0]) * A[:, 0] * -1
-    sparse_part_2 = numpy.eye(A.shape[0]) * A[:, 1] * -1
-    sparse_part_3 = numpy.eye(A.shape[0]) * A[:, 2] * -1
+        A[:, 0] = -(x_1 + v_x_1 - x_0[0]) / r_1
+        A[:, 1] = -(y_1 + v_y_1 - x_0[1] ) / r_1
+        A[:, 2] = -(z_1 + v_z_1 - x_0[2] ) / r_1
 
-    # Bedingungsmatrix
-    B = numpy.zeros((sparse_part_1.shape[0], sparse_part_1.shape[1]*3))
-    B[:,0:sparse_part_1.shape[1]]=sparse_part_1
-    B[:,sparse_part_1.shape[1]:sparse_part_1.shape[1]*2] = sparse_part_2
-    B[:, sparse_part_1.shape[1]*2:sparse_part_1.shape[1] * 3] = sparse_part_3
-    #numpy.savetxt("B_sparese.txt", B, delimiter=" ")
+        # B is a sparse matrix - with the elements of A for each partial differential
+        sparse_part_1 = numpy.eye(A.shape[0]) * A[:, 0] * -1
+        sparse_part_2 = numpy.eye(A.shape[0]) * A[:, 1] * -1
+        sparse_part_3 = numpy.eye(A.shape[0]) * A[:, 2] * -1
 
-
-    print("Start calculation of the Normalequation matrix ...")
-
-    # Normalgleichungsmatrix
-    N = dot(dot(A.T,numpy.linalg.inv(dot(dot(B, SIGMA), B.T))),A)
-
-    # Zuschläge
-    x_d = -dot(numpy.linalg.inv(N),dot(dot(A.T,numpy.linalg.inv(dot(dot(B, SIGMA), B.T))),w))
-
-    #Korrelat
-    k = -dot(numpy.linalg.inv(dot(dot(B, SIGMA), B.T)),dot(A, x_d)+w)
-
-    #Verbesserungen
-    v = dot(dot(SIGMA, B.T), k)
-
-    # kovarianz
-    sigma_0 = numpy.sqrt(dot(dot(v.T,SIGMA), v)/(sphere_data_1_subset.shape[0]-sphere_data_1_subset.shape[1]))
-
-    # kovarianzmatrix
-    SIGMA_xx = N * sigma_0**2
-
-    # verbesserten Parameter
-    x_dach = x_0 + x_d
-
-    print("x_0: ", x_0.shape)
-    print(x_0)
-    print("x_d: ", x_d.shape)
-    print(x_d)
-    print("x_dach: ", x_0 + x_d)
-    print("Dim Check")
-    print("A: ", A.shape)
-    print("w: ", w.shape)
-    print("r_1: ", r_1.shape)
-    print("B: ", B.shape)
-    print(B[:,1])
-    print("N: ", N.shape)
-    print(N)
-    print("k: ", k.shape)
-    print(k)
-    print("v: ", v.shape)
-    print(v)
-    print("sigma_0: ", sigma_0.shape)
-    print(sigma_0)
-    print("SIGMA_xx: ", SIGMA_xx.shape)
-    print(SIGMA_xx)
+        # Bedingungsmatrix
+        B = numpy.zeros((sparse_part_1.shape[0], sparse_part_1.shape[1]*3))
+        B[:,0:sparse_part_1.shape[1]]=sparse_part_1
+        B[:,sparse_part_1.shape[1]:sparse_part_1.shape[1]*2] = sparse_part_2
+        B[:, sparse_part_1.shape[1]*2:sparse_part_1.shape[1] * 3] = sparse_part_3
+        #numpy.savetxt("B_sparese.txt", B, delimiter=" ")
 
 
+        print("Start calculation of the Normalequation matrix ...")
 
-    x_arr_sphere, y_arr_sphere, z_arr_sphere = calc_sphere(x_dach[0], x_dach[1], x_dach[2], x_dach[3])
+        # Normalgleichungsmatrix
+        N = dot(dot(A.T,numpy.linalg.inv(dot(dot(B, SIGMA), B.T))),A)
+
+        if abs(numpy.linalg.det(N)) > EPSILON:
+
+            # Zuschläge
+            x_d = -dot(numpy.linalg.inv(N),dot(dot(A.T,numpy.linalg.inv(dot(dot(B, SIGMA), B.T))),w))
+
+            #Korrelat
+            k = -dot(numpy.linalg.inv(dot(dot(B, SIGMA), B.T)),dot(A, x_d)+w)
+
+            #Verbesserungen
+            v = dot(dot(SIGMA, B.T), k)
+
+            # kovarianz
+            sigma_0 = numpy.sqrt(dot(dot(v.T,SIGMA), v)/(sphere_data_1_subset.shape[0]-sphere_data_1_subset.shape[1]))
+
+            # kovarianzmatrix
+            SIGMA_xx = N * sigma_0**2
+
+            # verbesserten Parameter
+            x_dach = x_0 + x_d
+
+            print("x_0: ", x_0.shape)
+            print(x_0)
+            print("x_d: ", x_d.shape)
+            print(x_d)
+            print("x_dach: ", x_0 + x_d)
+            print("Dim Check")
+            print("A: ", A.shape)
+            print("w: ", w.shape)
+            print("r_1: ", r_1.shape)
+            print("B: ", B.shape)
+            print(B[:,1])
+            print("N: ", N.shape)
+            print(N)
+            print("N det: ", numpy.linalg.det(N))
+            print("N abs(det) < EPSILON: ", abs(numpy.linalg.det(N)) < EPSILON)
+            print("k: ", k.shape)
+            print(k)
+            print("v: ", v.shape)
+            print(v)
+            print("sigma_0: ", sigma_0.shape)
+            print(sigma_0)
+            print("SIGMA_xx: ", SIGMA_xx.shape)
+            print(SIGMA_xx)
 
 
-    # check if min
-    # Minimumsforderung - erweitert um die Nebendedingung
-    fl_check = dot(dot(v.T, numpy.linalg.inv(SIGMA)), v) - 2 * dot(k.T,(dot(A,x_d) + dot(B,v) + w))
 
-    # hauptprobe - soll durchgeführt werden wenn die Minimumsforderung unter einem gewissen schwellwert gefallen ist
-    f_l = numpy.sqrt((x_1 + v[0 : sphere_x_data_1.shape[0]] - x_dach[0])**2
-                     + (y_1 + v[sphere_x_data_1.shape[0] : sphere_x_data_1.shape[0]*2] - x_dach[1])**2
-                     + (z_1 + v[sphere_x_data_1.shape[0]*2 : sphere_x_data_1.shape[0]*3] - x_dach[2])**2
-                     ) - x_dach[3]
+            x_arr_sphere, y_arr_sphere, z_arr_sphere = calc_sphere(x_dach[0], x_dach[1], x_dach[2], x_dach[3])
 
-    print("hauptbedingung: ", f_l)
-    print("check bedingung: ", fl_check)
-    print(f_l - fl_check)
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    ax.plot_surface(x_arr_sphere, y_arr_sphere, z_arr_sphere, color='cyan', label="Estimated Sphere", )
-    ax.scatter3D(sphere_x_data_1, sphere_x_data_2, sphere_x_data_3, c=sphere_x_data_3, linewidths=0.5, label="LTS Sphere Points")
-    ax.scatter3D([sphere_data_max_z[0,0]], [sphere_data_max_z[0,1]], [z_init_max],  color='red', linewidths=0.5, label="initial Center Point")
-    ax.set_title("3D Scatter Plot of the LTS Sphere")
-    ax.set_xlabel("X Coorinates")
-    ax.set_ylabel("Y Coorinates")
-    ax.set_zlabel("Z Coorinates")
+
+            # check if min
+            # Minimumsforderung - erweitert um die Nebendedingung
+            fl_check = dot(dot(v.T, numpy.linalg.inv(SIGMA)), v) - 2 * dot(k.T,(dot(A,x_d) + dot(B,v) + w))
+
+            # hauptprobe - soll durchgeführt werden wenn die Minimumsforderung unter einem gewissen schwellwert gefallen ist
+            f_l = numpy.sqrt((x_1 + v[0: x_1.shape[0]] - x_dach[0]) ** 2
+                             + (y_1 + v[x_1.shape[0]: x_1.shape[0] * 2] - x_dach[1]) ** 2
+                             + (z_1 + v[x_1.shape[0] * 2: x_1.shape[0] * 3] - x_dach[2]) ** 2
+                             ) - x_dach[3]
+
+            print("hauptbedingung: ", f_l)
+            print("check bedingung: ", fl_check)
+            print(f_l - fl_check)
+            fig = plt.figure()
+            ax = fig.gca(projection='3d')
+            ax.plot_surface(x_arr_sphere, y_arr_sphere, z_arr_sphere, color='cyan', label="Estimated Sphere", )
+            ax.scatter3D(x_1, y_1, z_1, c=z_1, linewidths=0.5, label="LTS Sphere Points")
+            ax.scatter3D([sphere_data_max_z[0,0]], [sphere_data_max_z[0,1]], [z_init_max],  color='red', linewidths=0.5, label="initial Center Point")
+            ax.set_title("3D Scatter Plot of the LTS Sphere")
+            ax.set_xlabel("X Coorinates")
+            ax.set_ylabel("Y Coorinates")
+            ax.set_zlabel("Z Coorinates")
+        else:
+            print("Normal equation Matrix is not invertable - No solution as foznd")
+            break
 
 
     plt.show()
