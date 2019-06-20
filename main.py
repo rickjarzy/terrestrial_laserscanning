@@ -83,8 +83,9 @@ def gaus_helmert_model(sphere_data_1_subset, fig, verbose=False):
 
     fl_check = 1
     cou = 0
+    x_d = numpy.array([1,1,1,1])
 
-    while EPSILON < fl_check:
+    while max(abs(x_d)) > EPSILON: #EPSILON < fl_check:
 
         # update x,y,z with the corrections of v - (update)
 
