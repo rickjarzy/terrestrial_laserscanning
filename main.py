@@ -11,7 +11,7 @@ from numpy import dot
 # todo: RANSAC implementieren
 # todo: function für Gauss-Helmert
 
-def calc_sphere(m_x, m_y, m_z, radius, verbose=False):
+def calc_sphere(m_x, m_y, m_z, radius, verbose):
 
 
     phi = numpy.linspace(0, 2*numpy.pi, 100)
@@ -21,7 +21,7 @@ def calc_sphere(m_x, m_y, m_z, radius, verbose=False):
     y = m_y + radius * numpy.outer(numpy.sin(phi), numpy.sin(theta))
     z = m_z + radius * numpy.outer(numpy.ones(numpy.size(phi)), numpy.cos(theta))
 
-    if verbose:
+    if verbose==2:
         print(" len of x ", len(x))
         # 3d Scattrer plot - FULL resolution
         fig = plt.figure()
@@ -32,7 +32,7 @@ def calc_sphere(m_x, m_y, m_z, radius, verbose=False):
 
     return x, y, z
 
-def gaus_helmert_model(sphere_data_1_subset, fig, verbose=False):
+def gaus_helmert_model(sphere_data_1_subset, fig, verbose):
     # select start values for sphere center - take the measuremnet where the zvalue is max
     sphere_data_max_z = sphere_data_1[sphere_data_1[:, 2] == numpy.nanmax(sphere_data_1[:, 2])]
 
@@ -98,7 +98,7 @@ def gaus_helmert_model(sphere_data_1_subset, fig, verbose=False):
         v_y_1 = v[x_1.shape[0]: x_1.shape[0] * 2]
         v_z_1 = v[x_1.shape[0] * 2: x_1.shape[0] * 3]
 
-        if verbose:
+        if verbose==2:
             print("# Verbesserungen nach Koordinaten")
             print("# v_x_1: ", v_x_1)
             print("# v_y_1: ", v_y_1)
@@ -164,7 +164,7 @@ def gaus_helmert_model(sphere_data_1_subset, fig, verbose=False):
             print("# x_d: ", x_d.shape, " - ", x_d)
             print("# x_dach: ", x_dach.shape, " - ", x_dach)
 
-            if verbose:
+            if verbose==2:
                 print("\n# Dim Check A: ", A.shape)
                 print("# Dim Check w: ", w.shape)
                 print("# Dim Check r_1: ", r_1.shape)
@@ -186,7 +186,7 @@ def gaus_helmert_model(sphere_data_1_subset, fig, verbose=False):
 
             # check if min
             # Minimumsforderung - erweitert um die Nebendedingung
-            fl_check = dot(dot(v.T, numpy.linalg.inv(SIGMA)), v) - 2 * dot(k.T, (dot(A, x_d) + dot(B, v) + w))
+            fl_hauptprobe = dot(dot(v.T, numpy.linalg.inv(SIGMA)), v) - 2 * dot(k.T, (dot(A, x_d) + dot(B, v) + w))
 
             # hauptprobe - soll durchgeführt werden wenn die Minimumsforderung unter einem gewissen schwellwert gefallen ist
             f_l = numpy.sqrt((x_1 + v[0: x_1.shape[0]] - x_dach[0]) ** 2
@@ -196,9 +196,10 @@ def gaus_helmert_model(sphere_data_1_subset, fig, verbose=False):
 
             print("\n\n#  Kontrollen\n"
                   "   ==============")
-            print("# Hauptbedingung: ", f_l)
-            print("\n# Check bedingung: ", fl_check)
-            print(f_l - fl_check)
+            if verbose == 1: print("# Hauptbedingung: ", f_l)
+            print("\n# Minimumsforderung: ", fl_hauptprobe)
+
+
 
 
             # Update iterative variables
@@ -206,12 +207,17 @@ def gaus_helmert_model(sphere_data_1_subset, fig, verbose=False):
             # v gets updated on the beginning of the while loop
 
         else:
-            print("!! Normal equation Matrix is not invertable - No solution as found")
+            print("\n!! Normal equation Matrix is not invertable - No solution as found"
+                  "   ==============================================================")
             break
 
         # check if convergenze is smaller than EPSILON
-        if max(f_l) < EPSILON:
-            print("# Hauptprobe erfolgreich - Konvergenz erreicht")
+        if fl_hauptprobe < EPSILON:
+
+            print("\n# Hauptprobe erfolgreich - Konvergenz erreicht"
+                  "\n  =============================================")
+
+            print("# x_d max(abs()): ", max(abs(x_d)))
             break
         # elif cou == 3:
         #    break
@@ -227,9 +233,9 @@ if __name__ == "__main__":
     # commandline arguments
     parser = argparse.ArgumentParser("Gauss-Helmert-Ausgleich einer Kugel anhand von TLS Daten")
     parser.add_argument("number_of_epochs", type=int, help="number of how many measurements will be selected for the Ausgleich")
-    parser.add_argument("-v", "--verbosity", action="store_true", help="increase output verbosity")
+    parser.add_argument("-v", "--verbosity", action="count", default=0,help="increase output verbosity")
     args = parser.parse_args()
-
+    print("ARGS: ", args)
     # create TLS Data
     #tls_x, tls_y, tls_z = create_tls_data(sphere_x, sphere_y, sphere_z, sphere_radius)
 
@@ -254,10 +260,20 @@ if __name__ == "__main__":
     # calculate the parameters for the sphere out of the selected TLS data subset
     sphere_parameters, corrections, SIGMA_xx, fig, ax = gaus_helmert_model(sphere_data_1_subset, fig, args.verbosity)
 
+    # RANSACING
 
+    d_i_n = ((sphere_data_1_subset[:, 0] - sphere_parameters[0])**2 + (sphere_data_1_subset[:, 1] - sphere_parameters[1])**2 +(sphere_data_1_subset[:, 2] - sphere_parameters[2])**2) - sphere_parameters[3]
+    sigma_hersteller = 0.01     # laut hersteller angabe 10 mm ungenauigkeit
+
+    print("# Bestimmung Inlier und Outlier"
+          "\n  ==============================")
+    print(d_i_n)
+
+    in_and_outliers = numpy.where(d_i_n<sigma_hersteller**2, True, False)
+    print(in_and_outliers)
 
     # calculate a sphere visualisation for the estimates
-    x_arr_sphere, y_arr_sphere, z_arr_sphere = calc_sphere(sphere_parameters[0], sphere_parameters[1], sphere_parameters[2], sphere_parameters[3])
+    x_arr_sphere, y_arr_sphere, z_arr_sphere = calc_sphere(sphere_parameters[0], sphere_parameters[1], sphere_parameters[2], sphere_parameters[3], args.verbosity)
 
     # plot the resulting estimated sphere and starting parameters
     ax.plot_surface(x_arr_sphere, y_arr_sphere, z_arr_sphere, alpha=0.2, color='cyan', label="Estimated Sphere")
