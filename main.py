@@ -15,11 +15,8 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--verbosity", action="count", default=0,help="increase output verbosity")
     args = parser.parse_args()
     print("ARGS: ", args)
-    # create TLS Data
-    #tls_x, tls_y, tls_z = create_tls_data(sphere_x, sphere_y, sphere_z, sphere_radius)
-    print(globals())
-    # load TLS data
 
+    # load TLS data
     sphere_data_1 = numpy.loadtxt(open(r"SP1_Scan002_sphere.txt"), delimiter=",")
 
     # select start values for sphere center - take the measuremnet where the zvalue is max
@@ -42,18 +39,23 @@ if __name__ == "__main__":
     fig = plt.figure()
 
     # calculate the parameters for the sphere out of the selected TLS data subset
-    sphere_parameters, corrections, SIGMA_xx, fig, ax = gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z,  fig, args.verbosity)
+    sphere_parameters, corrections, SIGMA_xx, sigma_0, fig, ax = gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z,  fig, args.verbosity)
+
+    print("# Sig_0: ", sigma_0)
 
     # RANSACING
 
-    d_i_n = ((sphere_data_1_subset[:, 0] - sphere_parameters[0])**2 + (sphere_data_1_subset[:, 1] - sphere_parameters[1])**2 +(sphere_data_1_subset[:, 2] - sphere_parameters[2])**2) - sphere_parameters[3]
+    d_i_n = ((sphere_data_1_subset[:, 0] - sphere_parameters[0])**2 + (sphere_data_1_subset[:, 1] - sphere_parameters[1])**2 +(sphere_data_1_subset[:, 2] - sphere_parameters[2])**2) - sphere_parameters[3]**2
     sigma_hersteller = 0.01     # laut hersteller angabe 10 mm ungenauigkeit
 
     print("# Bestimmung Inlier und Outlier"
           "\n  ==============================")
+
+    print("# Hersteller Ungenauigkeit t: ", sigma_hersteller)
+    print("# t^2: ", sigma_hersteller**2)
     print(d_i_n)
 
-    in_and_outliers = numpy.where(d_i_n<sigma_hersteller**2, True, False)
+    in_and_outliers = numpy.where(d_i_n<sigma_hersteller, True, False)
     print(in_and_outliers)
 
     # calculate a sphere visualisation for the estimates

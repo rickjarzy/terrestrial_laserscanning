@@ -16,7 +16,7 @@ def calc_sphere(m_x, m_y, m_z, radius, verbose):
     z = m_z + radius * numpy.outer(numpy.ones(numpy.size(phi)), numpy.cos(theta))
 
     if verbose==2:
-        print(" len of x ", len(x))
+        print("- len of x ", len(x))
         # 3d Scattrer plot - FULL resolution
         fig = plt.figure()
         ax = fig.gca(projection='3d')
@@ -53,23 +53,23 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
     # Konvergenzgrenze
     EPSILON = 1e-12
 
-    print("\n\n# Start values\n"
+    print("\n\n- Start values\n"
           "  ===============")
 
-    print("# Data diminesion subset: ", sphere_data_1_subset.shape)
-    print("# Max  z koord: ", z_c)
-    print("# x koord sphere init: ", x_c)
-    print("# y koord sphere init: ", y_c)
-    print("# z koord sphere init", z_c)
-    print("# r init: ", r_c)
-    print("# v init", v)
+    print("- Data diminesion subset: ", sphere_data_1_subset.shape)
+    print("- Max  z koord: ", z_c)
+    print("- x koord sphere init: ", x_c)
+    print("- y koord sphere init: ", y_c)
+    print("- z koord sphere init", z_c)
+    print("- r init: ", r_c)
+    print("- v init", v)
 
     ax = fig.gca(projection='3d')
     ax.scatter3D(x_1, y_1, z_1, c=z_1, linewidths=0.5, label="LTS Sphere Points")
     ax.scatter3D([sphere_data_max_z[0, 0]], [sphere_data_max_z[0, 1]], [z_init_max], color='red',
                  linewidths=0.5, label="initial Center Point")
 
-    print("\n\n# Start sphere parameter estimation"
+    print("\n\n- Start sphere parameter estimation"
           "\n  =================================")
 
     fl_check = 1
@@ -90,10 +90,10 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
         v_z_1 = v[x_1.shape[0] * 2: x_1.shape[0] * 3]
 
         if verbose==2:
-            print("# Verbesserungen nach Koordinaten")
-            print("# v_x_1: ", v_x_1)
-            print("# v_y_1: ", v_y_1)
-            print("# v_z_1: ", v_z_1)
+            print("- Verbesserungen nach Koordinaten")
+            print("- v_x_1: ", v_x_1)
+            print("- v_y_1: ", v_y_1)
+            print("- v_z_1: ", v_z_1)
 
         # help value for the radius
         r_1 = numpy.sqrt((x_1 + v_x_1 - x_0[0]) ** 2 + (y_1 + v_y_1 - x_0[1]) ** 2 + (z_1 + v_z_1 - x_0[2]) ** 2)
@@ -124,7 +124,7 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
         B[:, sparse_part_1.shape[1] * 2:sparse_part_1.shape[1] * 3] = sparse_part_3
         # numpy.savetxt("B_sparese.txt", B, delimiter=" ")
 
-        print("\n\n# Start calculation of the Normalequation matrix - iteration nr: %d\n"
+        print("\n\n- Start calculation of the Normalequation matrix - iteration nr: %d\n"
               "  =====================================================================" % cou)
 
         # Normalgleichungsmatrix
@@ -143,17 +143,17 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
 
             # Standardabweichung der Gewichtseinheit
             sigma_0 = numpy.sqrt(
-                dot(dot(v.T, SIGMA), v) / (sphere_data_1_subset.shape[0] - sphere_data_1_subset.shape[1]))
+                dot(dot(v.T, SIGMA), v) / (sphere_data_1_subset.shape[0] - 4))
 
             # kovarianzmatrix der ausgeglichenen Kugelparameter
             SIGMA_xx = N * sigma_0 ** 2
 
             # verbesserten Parameter
-            x_dach = x_0 + x_d
+            x = x_0 + x_d
 
             print("# x_0: ", x_0.shape, " - ", x_0)
             print("# x_d: ", x_d.shape, " - ", x_d)
-            print("# x_dach: ", x_dach.shape, " - ", x_dach)
+            print("# x: ", x.shape, " - ", x)
 
             if verbose==2:
                 print("\n# Dim Check A: ", A.shape)
@@ -180,10 +180,10 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
             fl_hauptprobe = dot(dot(v.T, numpy.linalg.inv(SIGMA)), v) - 2 * dot(k.T, (dot(A, x_d) + dot(B, v) + w))
 
             # hauptprobe - soll durchgeführt werden wenn die Minimumsforderung unter einem gewissen schwellwert gefallen ist
-            f_l = numpy.sqrt((x_1 + v[0: x_1.shape[0]] - x_dach[0]) ** 2
-                             + (y_1 + v[x_1.shape[0]: x_1.shape[0] * 2] - x_dach[1]) ** 2
-                             + (z_1 + v[x_1.shape[0] * 2: x_1.shape[0] * 3] - x_dach[2]) ** 2
-                             ) - x_dach[3]
+            f_l = numpy.sqrt((x_1 + v[0: x_1.shape[0]] - x[0]) ** 2
+                             + (y_1 + v[x_1.shape[0]: x_1.shape[0] * 2] - x[1]) ** 2
+                             + (z_1 + v[x_1.shape[0] * 2: x_1.shape[0] * 3] - x[2]) ** 2
+                             ) - x[3]
 
             print("\n\n#  Kontrollen\n"
                   "   ==============")
@@ -194,7 +194,7 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
 
 
             # Update iterative variables
-            x_0 = x_dach
+            x_0 = x
             # v gets updated on the beginning of the while loop
 
         else:
@@ -205,10 +205,10 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
         # check if convergenze is smaller than EPSILON
         if fl_hauptprobe < EPSILON:
 
-            print("\n# Hauptprobe erfolgreich - Konvergenz erreicht"
+            print("\n- Hauptprobe erfolgreich - Konvergenz erreicht"
                   "\n  =============================================")
 
-            print("# x_d max(abs()): ", max(abs(x_d)))
+            print("- x_d max(abs()): ", max(abs(x_d)))
             break
         # elif cou == 3:
         #    break
@@ -216,4 +216,4 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
             cou += 1
             continue
 
-    return x_dach, v, SIGMA_xx, fig, ax
+    return x, v, SIGMA_xx, sigma_0, fig, ax
