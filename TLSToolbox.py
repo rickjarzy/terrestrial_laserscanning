@@ -72,14 +72,14 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
     print("\n\n- Start sphere parameter estimation"
           "\n  =================================")
 
-    fl_check = 1
+    # counter that shows how many iterations the
     cou = 0
     x_d = numpy.array([1,1,1,1])
+    det_ok = True
 
     while max(abs(x_d)) > EPSILON: #EPSILON < fl_check:
 
         # update x,y,z with the corrections of v - (update)
-
         x_1 = x_1 + v[0: x_1.shape[0]]
         y_1 = y_1 + v[x_1.shape[0]: x_1.shape[0] * 2]
         z_1 = z_1 + v[x_1.shape[0] * 2: x_1.shape[0] * 3]
@@ -199,6 +199,23 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
         else:
             print("\n!! Normal equation Matrix is not invertable - No solution as found"
                   "\n   ==============================================================")
+            det_ok = False
+
+            # Zuschläge
+            x_d = -dot(numpy.linalg.inv(N), dot(dot(A.T, numpy.linalg.inv(dot(dot(B, SIGMA), B.T))), w))
+
+            # Korrelat
+            k = -dot(numpy.linalg.inv(dot(dot(B, SIGMA), B.T)), dot(A, x_d) + w)
+
+            # Verbesserungen
+            v = dot(dot(SIGMA, B.T), k)
+
+            # Standardabweichung der Gewichtseinheit
+            sigma_0 = numpy.sqrt(
+                dot(dot(v.T, SIGMA), v) / (sphere_data_1_subset.shape[0] - 4))
+
+            # kovarianzmatrix der ausgeglichenen Kugelparameter
+            SIGMA_xx = N * sigma_0 ** 2
 
             x = numpy.empty([4])
             break
@@ -218,4 +235,4 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
             cou += 1
             continue
 
-    return x, v, SIGMA_xx, sigma_0, fig, ax
+    return x, v, SIGMA_xx, sigma_0, fig, ax, det_ok
