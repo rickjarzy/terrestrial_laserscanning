@@ -41,28 +41,31 @@ if __name__ == "__main__":
     # calculate the parameters for the sphere out of the selected TLS data subset
     sphere_parameters, corrections, SIGMA_xx, sigma_0, fig, ax = gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z,  fig, args.verbosity)
 
+    # check if first estimation was correct
+    if sphere_parameters.any():
+        print("# Estimation was sucessfull")
+
     print("# Sig_0: ", sigma_0)
 
-    # RANSACING
-
-    d_i_n = ((sphere_data_1_subset[:, 0] - sphere_parameters[0])**2 + (sphere_data_1_subset[:, 1] - sphere_parameters[1])**2 +(sphere_data_1_subset[:, 2] - sphere_parameters[2])**2) - sphere_parameters[3]**2
+    # RANSAC-ING
+    d_i_n = numpy.sqrt((sphere_data_1_subset[:, 0] - sphere_parameters[0])**2 + (sphere_data_1_subset[:, 1] - sphere_parameters[1])**2 +(sphere_data_1_subset[:, 2] - sphere_parameters[2])**2) - sphere_parameters[3]
     sigma_hersteller = 0.01     # laut hersteller angabe 10 mm ungenauigkeit
 
-    print("# Bestimmung Inlier und Outlier"
+    print("\n# Bestimmung Inlier und Outlier"
           "\n  ==============================")
 
     print("# Hersteller Ungenauigkeit t: ", sigma_hersteller)
     print("# t^2: ", sigma_hersteller**2)
     print(d_i_n)
 
-    in_and_outliers = numpy.where(d_i_n<sigma_hersteller, True, False)
+    in_and_outliers = numpy.where(abs(d_i_n)<sigma_hersteller, True, False)
     print(in_and_outliers)
 
     # calculate a sphere visualisation for the estimates
     x_arr_sphere, y_arr_sphere, z_arr_sphere = calc_sphere(sphere_parameters[0], sphere_parameters[1], sphere_parameters[2], sphere_parameters[3], args.verbosity)
 
     # plot the resulting estimated sphere and starting parameters
-    ax.plot_surface(x_arr_sphere, y_arr_sphere, z_arr_sphere, alpha=0.2, color='cyan', label="Estimated Sphere")
+    ax.plot_surface(x_arr_sphere, y_arr_sphere, z_arr_sphere, alpha=0.1, color='cyan', label="Estimated Sphere")
     ax.scatter3D([sphere_parameters[0]], [sphere_parameters[1]], [sphere_parameters[2]], color='black', linewidths=0.5, label="calculated Center Point")
 
     ax.set_title("3D Scatter Plot of the LTS Sphere")

@@ -51,7 +51,7 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
     z_1 = sphere_data_1_subset[:, 2]
 
     # Konvergenzgrenze
-    EPSILON = 1e-12
+    EPSILON = 1e-6
 
     print("\n\n- Start values\n"
           "  ===============")
@@ -151,32 +151,30 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
             # verbesserten Parameter
             x = x_0 + x_d
 
-            print("# x_0: ", x_0.shape, " - ", x_0)
-            print("# x_d: ", x_d.shape, " - ", x_d)
-            print("# x: ", x.shape, " - ", x)
+            print("- x_0: ", x_0.shape, " - ", x_0)
+            print("- x_d: ", x_d.shape, " - ", x_d)
+            print("- x: ", x.shape, " - ", x)
 
             if verbose==2:
-                print("\n# Dim Check A: ", A.shape)
-                print("# Dim Check w: ", w.shape)
-                print("# Dim Check r_1: ", r_1.shape)
-                print("# Dim Check B: ", B.shape)
-                print("# Dim Check N: ", N.shape)
+                print("\n- Dim Check A: ", A.shape)
+                print("- Dim Check w: ", w.shape)
+                print("- Dim Check r_1: ", r_1.shape)
+                print("- Dim Check B: ", B.shape)
+                print("- Dim Check N: ", N.shape)
                 print(N)
-                print("\n# N det: ", numpy.linalg.det(N))
-                print("# abs(det(N)) < EPSILON: ", abs(numpy.linalg.det(N)) < EPSILON)
-                print("\n# Korrelaten k: ", k.shape, " - ", k)
+                print("\n- N det: ", numpy.linalg.det(N))
+                print("- abs(det(N)) < EPSILON: ", abs(numpy.linalg.det(N)) < EPSILON)
+                print("\n- Korrelaten k: ", k.shape, " - ", k)
 
-                print("\n# Verbesserungen v: ", v.shape, " - ", v)
+                print("\n- Verbesserungen v: ", v.shape, " - ", v)
 
-                print("\n# sigma_0: ", sigma_0.shape)
+                print("\n- sigma_0: ", sigma_0.shape)
                 print(sigma_0)
-                print("\n# SIGMA_xx: ", SIGMA_xx.shape)
+                print("\n- SIGMA_xx: ", SIGMA_xx.shape)
                 print(SIGMA_xx)
 
-
-
             # check if min
-            # Minimumsforderung - erweitert um die Nebendedingung
+            # Minimumsforderung - erweitert um die Nebenbedingung
             fl_hauptprobe = dot(dot(v.T, numpy.linalg.inv(SIGMA)), v) - 2 * dot(k.T, (dot(A, x_d) + dot(B, v) + w))
 
             # hauptprobe - soll durchgeführt werden wenn die Minimumsforderung unter einem gewissen schwellwert gefallen ist
@@ -185,13 +183,14 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
                              + (z_1 + v[x_1.shape[0] * 2: x_1.shape[0] * 3] - x[2]) ** 2
                              ) - x[3]
 
-            print("\n\n#  Kontrollen\n"
+            print("\n\n-  Kontrollen\n"
                   "   ==============")
-            if verbose == 1: print("# Hauptbedingung: ", f_l)
-            print("\n# Minimumsforderung: ", fl_hauptprobe)
+            if verbose == 1:
+                print("- Hauptbedingung: ", f_l)
+                print("- max(abs(x_d)): ", max(abs(x_d)))
+                print("- max(abs(x_d)) < EPSILON: ", max(abs(x_d)) < EPSILON)
 
-
-
+            print("\n- Minimumsforderung: ", fl_hauptprobe)
 
             # Update iterative variables
             x_0 = x
@@ -199,7 +198,9 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
 
         else:
             print("\n!! Normal equation Matrix is not invertable - No solution as found"
-                  "   ==============================================================")
+                  "\n   ==============================================================")
+
+            x = numpy.empty([4])
             break
 
         # check if convergenze is smaller than EPSILON
@@ -207,9 +208,10 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
 
             print("\n- Hauptprobe erfolgreich - Konvergenz erreicht"
                   "\n  =============================================")
-
             print("- x_d max(abs()): ", max(abs(x_d)))
-            break
+            print("- fl_hauptprobe: ", fl_hauptprobe)
+            cou += 1
+            #break
         # elif cou == 3:
         #    break
         else:
