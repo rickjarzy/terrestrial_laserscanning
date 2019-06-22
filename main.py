@@ -17,7 +17,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     tls_file_name_list = [r"SP1_Scan002_sphere.txt", r"SP1_Scan003_sphere.txt", r"SP2_Scan002_sphere.txt", r"SP2_Scan003_sphere.txt"]
-    used_file = tls_file_name_list[3]
+    used_file = tls_file_name_list[0]
 
     # load TLS data
 
@@ -86,7 +86,7 @@ if __name__ == "__main__":
             if sum_inliers > max_inliers:
 
                 print("# UPDATE N - old num inliers %d < %d new num inliers " % (max_inliers, sum_inliers))
-                print("  old N: ", N)
+
                 max_inliers = sum_inliers
 
                 eps = sum_outliers/sphere_data_1.shape[0]
@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
                 consensus_set = sphere_data_1[in_and_outliers]
                 best_sphere_estimate = sphere_parameters
-                print("  new N: ", N)
+
                 # reset counter to walk again from the beginning
                 #counter_ransac_loop = 0
 
@@ -128,9 +128,9 @@ if __name__ == "__main__":
     print("# Sphere Y:  ", best_sphere_estimate[1])
     print("# Sphere Z:  ", best_sphere_estimate[2])
     print("# Sphere R:  ", best_sphere_estimate[3])
-    #sphere_parameters, corrections, SIGMA_xx, sigma_0, fig, ax, status_det = gaus_helmert_model(sphere_data_1, sphere_data_max_z, fig, args.verbosity)
+    print("# Sphere Volume: ", (4/3) * numpy.pi * best_sphere_estimate[3]**3, "[m³]")
 
-
+    #sphere_parameters, corrections, SIGMA_xx, sigma_0, fig, ax, status_det = gaus_helmert_model(consensus_set, sphere_data_max_z, fig, args.verbosity)
 
     # calculate a sphere visualisation for the estimates
     x_arr_sphere, y_arr_sphere, z_arr_sphere = calc_sphere(best_sphere_estimate[0], best_sphere_estimate[1], best_sphere_estimate[2], best_sphere_estimate[3], args.verbosity)
