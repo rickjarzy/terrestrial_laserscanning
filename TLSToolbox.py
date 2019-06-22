@@ -27,7 +27,7 @@ def calc_sphere(m_x, m_y, m_z, radius, verbose):
 
     return x, y, z
 
-def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
+def gauss_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
 
     # INITIAL VALUES
     # ===================================
