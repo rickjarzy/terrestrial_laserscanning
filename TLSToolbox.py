@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy
+
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from mpl_toolkits.mplot3d import Axes3D
@@ -31,6 +32,8 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
     # INITIAL VALUES
     # ===================================
 
+    size_of_input_date = sphere_data_1_subset.shape[1]
+
     # estimate sphere radius
     r_c = 0.15
     # estimate sphere center coordinates
@@ -53,30 +56,29 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
     # Konvergenzgrenze
     EPSILON = 1e-6
 
-    print("\n\n- Start values\n"
-          "  ===============")
-
-    print("- Data diminesion subset: ", sphere_data_1_subset.shape)
-    print("- Max  z koord: ", z_c)
-    print("- x koord sphere init: ", x_c)
-    print("- y koord sphere init: ", y_c)
-    print("- z koord sphere init", z_c)
-    print("- r init: ", r_c)
-    print("- v init", v)
-
     ax = fig.gca(projection='3d')
     ax.scatter3D(x_1, y_1, z_1, c=z_1, linewidths=0.5, label="LTS Sphere Points")
     ax.scatter3D([sphere_data_max_z[0, 0]], [sphere_data_max_z[0, 1]], [z_init_max], color='red',
                  linewidths=0.5, label="initial Center Point")
-
-    print("\n\n- Start sphere parameter estimation"
-          "\n  =================================")
 
     # counter that shows how many iterations the
     cou = 0
     x_d = numpy.array([1,1,1,1])
     det_ok = True
 
+    if verbose == 2:
+        print("\n\n- Start values\n"
+              "  ===============")
+        print("- Data diminesion subset: ", sphere_data_1_subset.shape)
+        print("- Max  z koord: ", z_c)
+        print("- x koord sphere init: ", x_c)
+        print("- y koord sphere init: ", y_c)
+        print("- z koord sphere init", z_c)
+        print("- r init: ", r_c)
+        print("- v init", v)
+
+        print("\n\n- Start sphere parameter estimation"
+              "\n  =================================")
     while max(abs(x_d)) > EPSILON: #EPSILON < fl_check:
 
         # update x,y,z with the corrections of v - (update)
@@ -89,7 +91,7 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
         v_y_1 = v[x_1.shape[0]: x_1.shape[0] * 2]
         v_z_1 = v[x_1.shape[0] * 2: x_1.shape[0] * 3]
 
-        if verbose==2:
+        if verbose==3:
             print("- Verbesserungen nach Koordinaten")
             print("- v_x_1: ", v_x_1)
             print("- v_y_1: ", v_y_1)
@@ -124,8 +126,9 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
         B[:, sparse_part_1.shape[1] * 2:sparse_part_1.shape[1] * 3] = sparse_part_3
         # numpy.savetxt("B_sparese.txt", B, delimiter=" ")
 
-        print("\n\n- Start calculation of the Normalequation matrix - iteration nr: %d\n"
-              "  =====================================================================" % cou)
+        if verbose == 2:
+            print("\n\n- Start calculation of the Normalequation matrix - iteration nr: %d\n"
+                  "  =====================================================================" % cou)
 
         # Normalgleichungsmatrix
         N = dot(dot(A.T, numpy.linalg.inv(dot(dot(B, SIGMA), B.T))), A)
@@ -141,21 +144,26 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
             # Verbesserungen
             v = dot(dot(SIGMA, B.T), k)
 
-            # Standardabweichung der Gewichtseinheit
-            sigma_0 = numpy.sqrt(
-                dot(dot(v.T, SIGMA), v) / (sphere_data_1_subset.shape[0] - 4))
+            if size_of_input_date > 4:
+                # Standardabweichung der Gewichtseinheit
+                sigma_0 = numpy.sqrt(
+                    dot(dot(v.T, SIGMA), v) / (sphere_data_1_subset.shape[0] - 4))
 
-            # kovarianzmatrix der ausgeglichenen Kugelparameter
-            SIGMA_xx = N * sigma_0 ** 2
+                # kovarianzmatrix der ausgeglichenen Kugelparameter
+                SIGMA_xx = N * sigma_0 ** 2
+            else:
+                sigma_0 = numpy.inf
+                SIGMA_xx = numpy.eye(4,4)
 
             # verbesserten Parameter
             x = x_0 + x_d
 
-            print("- x_0: ", x_0.shape, " - ", x_0)
-            print("- x_d: ", x_d.shape, " - ", x_d)
-            print("- x: ", x.shape, " - ", x)
+            if verbose == 2:
+                print("- x_0: ", x_0.shape, " - ", x_0)
+                print("- x_d: ", x_d.shape, " - ", x_d)
+                print("- x: ", x.shape, " - ", x)
 
-            if verbose==2:
+            if verbose==3:
                 print("\n- Dim Check A: ", A.shape)
                 print("- Dim Check w: ", w.shape)
                 print("- Dim Check r_1: ", r_1.shape)
@@ -183,22 +191,21 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
                              + (z_1 + v[x_1.shape[0] * 2: x_1.shape[0] * 3] - x[2]) ** 2
                              ) - x[3]
 
-            print("\n\n-  Kontrollen\n"
-                  "   ==============")
-            if verbose == 1:
+
+            if verbose == 2:
+                print("\n\n-  Kontrollen\n"
+                      "   ==============")
                 print("- Hauptbedingung: ", f_l)
                 print("- max(abs(x_d)): ", max(abs(x_d)))
                 print("- max(abs(x_d)) < EPSILON: ", max(abs(x_d)) < EPSILON)
-
-            print("\n- Minimumsforderung: ", fl_hauptprobe)
+                print("\n- Minimumsforderung: ", fl_hauptprobe)
 
             # Update iterative variables
             x_0 = x
             # v gets updated on the beginning of the while loop
 
         else:
-            print("\n!! Normal equation Matrix is not invertable - No solution as found"
-                  "\n   ==============================================================")
+
             det_ok = False
 
             # Zuschläge
@@ -210,27 +217,33 @@ def gaus_helmert_model(sphere_data_1_subset, sphere_data_max_z, fig, verbose):
             # Verbesserungen
             v = dot(dot(SIGMA, B.T), k)
 
-            # Standardabweichung der Gewichtseinheit
-            sigma_0 = numpy.sqrt(
-                dot(dot(v.T, SIGMA), v) / (sphere_data_1_subset.shape[0] - 4))
+            if size_of_input_date > 4:
+                # Standardabweichung der Gewichtseinheit
+                sigma_0 = numpy.sqrt(
+                    dot(dot(v.T, SIGMA), v) / (sphere_data_1_subset.shape[0] - 4))
 
-            # kovarianzmatrix der ausgeglichenen Kugelparameter
-            SIGMA_xx = N * sigma_0 ** 2
+                # kovarianzmatrix der ausgeglichenen Kugelparameter
+                SIGMA_xx = N * sigma_0 ** 2
+            else:
+                sigma_0 = numpy.inf
+                SIGMA_xx = numpy.eye(4,4)
 
             x = numpy.empty([4])
+
+            if verbose == 2:
+                print("\n!! Normal equation Matrix is not invertable - No solution as found"
+                      "\n   ==============================================================")
             break
 
         # check if convergenze is smaller than EPSILON
         if fl_hauptprobe < EPSILON:
-
-            print("\n- Hauptprobe erfolgreich - Konvergenz erreicht"
-                  "\n  =============================================")
-            print("- x_d max(abs()): ", max(abs(x_d)))
-            print("- fl_hauptprobe: ", fl_hauptprobe)
             cou += 1
-            #break
-        # elif cou == 3:
-        #    break
+            if verbose == 2:
+                print("\n- Hauptprobe erfolgreich - Konvergenz erreicht"
+                      "\n  =============================================")
+                print("- x_d max(abs()): ", max(abs(x_d)))
+                print("- fl_hauptprobe: ", fl_hauptprobe)
+
         else:
             cou += 1
             continue
