@@ -122,7 +122,7 @@ if __name__ == "__main__":
                     print("# returned x: ", sphere_parameters)
 
                 continue
-
+            break
         print("\n# RANSAC successfully finished in %d [sec]" % (time.perf_counter() - start),
               "\n  %s" % used_file,
               "\n  ============================================")
@@ -148,7 +148,7 @@ if __name__ == "__main__":
         ax.set_xlabel("GK X")
         ax.set_ylabel("GK Y")
         ax.set_zlabel("GK Z")
-        ax.set_title("Best Estimated Sphere from TLS Measurements")
+        ax.set_title("First Estimated Sphere from TLS Measurements")
 
         plt.show()
 
