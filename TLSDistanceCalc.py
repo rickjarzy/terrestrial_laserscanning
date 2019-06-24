@@ -12,5 +12,6 @@ if __name__ == "__main__":
 
     distance_sp1 = numpy.sqrt(sum((sphere_1_sp1 - sphere_2_sp1)**2))
     distance_sp2 = numpy.sqrt(sum((sphere_1_sp2 - sphere_2_sp2)**2))
+
     print("distance sp1: ", distance_sp1)
     print("distance sp1: ", distance_sp2)

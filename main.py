@@ -122,7 +122,7 @@ if __name__ == "__main__":
                     print("# returned x: ", sphere_parameters)
 
                 continue
-            break
+            #break
         print("\n# RANSAC successfully finished in %d [sec]" % (time.perf_counter() - start),
               "\n  %s" % used_file,
               "\n  ============================================")
@@ -144,11 +144,11 @@ if __name__ == "__main__":
         ax.plot_surface(x_arr_sphere, y_arr_sphere, z_arr_sphere, alpha=0.1, color='cyan', label="Estimated Sphere")
         ax.scatter3D([best_sphere_estimate[0]], [best_sphere_estimate[1]], [best_sphere_estimate[2]], color='black', linewidths=0.5, label="calculated Center Point")
 
-        ax.set_title("3D Scatter Plot of the LTS Sphere")
+        ax.set_title("Best Estimaed Sphere from TLS Measurements")
         ax.set_xlabel("GK X")
         ax.set_ylabel("GK Y")
         ax.set_zlabel("GK Z")
-        ax.set_title("First Estimated Sphere from TLS Measurements")
+        #ax.set_title("First Estimated Sphere from TLS Measurements")
 
         plt.show()
 
